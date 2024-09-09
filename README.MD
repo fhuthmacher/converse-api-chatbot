@@ -17,8 +17,8 @@ Function calling tool use with Converse API in Bedrock:
 ## Getting Started
 1. Clone the repository:
    ```
-   git clone git@github.com:aws-samples/genai-system-evaluation.git
-   cd genai-system-evaluation
+   git clone https://github.com/fhuthmacher/converse-api-chatbot.git
+   cd converse-api-chatbot
    ```
 
 2. Set up a virtual environment:
@@ -29,10 +29,17 @@ Function calling tool use with Converse API in Bedrock:
 
 3. Install the required dependencies:
    ```
-   pip install -r requirements.txt
+   pip install boto3 PyAthena python-dotenv pandas numpy streamlit pydantic --force-reinstall --no-cache
    ```
 
-4. Explore the notebook / run the streamlit application.
+4. Update config.env - set region and s3 bucket name for Athena
+   ```
+   REGION=us-east-1
+   S3_BUCKET_NAME=XXX
+   ```
+5. Create your Athena table and update query_database tool.
+
+6. Explore the notebook / run the streamlit application.
    ```
    streamlit run streamlit-chat.py
    ```

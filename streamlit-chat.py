@@ -109,7 +109,8 @@ class ToolsList:
         name="query_database",
         description="Get auto parts for a given car model year, make, engine and model"
     )
-    def query_database(self, 
+    def query_database(self,
+                        car_part_ref: int = Field(..., description="car replacement part"), 
                         car_model_year_ref: int = Field(..., description="car model year"),
                         car_model_make_ref: str = Field(..., description="car model make"),
                         car_model_ref: str = Field(..., description="car model"),
@@ -118,6 +119,10 @@ class ToolsList:
         
         try:
             # still search database even if we are still missing some information
+            if car_part_ref == '?':
+                print(f"{datetime.now():%H:%M:%S} - car_part_ref had value {car_part_ref}")
+                car_part_ref = '%'
+
             if car_model_year_ref == '?' or car_model_year_ref == 'What is the model year of your Suzuki?':
                 print(f"{datetime.now():%H:%M:%S} - car_model_year_ref had value {car_model_year_ref}")
                 car_model_year_ref = '%'
@@ -131,7 +136,7 @@ class ToolsList:
                 car_model_engine = '%'
                 print(f"{datetime.now():%H:%M:%S} - car_model_engine had value {car_model_engine}")
 
-            query = f'SELECT parts FROM "demo-catalog"."data" WHERE CAST(year AS VARCHAR) LIKE \'%{car_model_year_ref}%\' AND UPPER(make) LIKE UPPER(\'%{car_model_make_ref}%\') AND UPPER(model) LIKE UPPER(\'%{car_model_ref}%\') AND UPPER(engine) LIKE UPPER(\'%{car_model_engine}%\')'
+            query = f'SELECT parts FROM "demo-catalog"."data" WHERE CAST(year AS VARCHAR) LIKE \'%{car_model_year_ref}%\' AND UPPER(make) LIKE UPPER(\'%{car_model_make_ref}%\') AND UPPER(model) LIKE UPPER(\'%{car_model_ref}%\') AND UPPER(engine) LIKE UPPER(\'%{car_model_engine}%\') AND UPPER(parts) LIKE UPPER(\'%{car_part_ref}%\')'
             print(f"{datetime.now():%H:%M:%S} - query: {query}")
             cursor = connect(s3_staging_dir=f"s3://{S3_BUCKET_NAME}/athena/",
                                 region_name=REGION).cursor()
@@ -220,6 +225,10 @@ st.set_page_config(layout="wide")
 if "history" not in st.session_state:
     st.session_state.history = []
 
+# Initialize the session state if it doesn't exist
+if "user_question" not in st.session_state:
+    st.session_state["user_question"] = ""
+
 # Streamlit UI
 st.markdown("### Converse API for Amazon Bedrock - Function Calling Demo")
 st.markdown(
@@ -248,16 +257,23 @@ with tabs[0]:
     st.sidebar.image('./images/AWS_logo_RGB.png', width=40)
     with st.expander("Examples", expanded=False):
         st.markdown("""
+                    * Hi, I am looking for a replacement air-filter for my Suzuki. The model year is 2015, the engine is 376. It's the LTF400F KingQuad FSi model.
                     * Hi, I am looking for parts for my Suzuki?
-                    * Does su-5002-replacement-air-filter work with my Suzuki?
-                    * Hi, I am looking for an autopart for my Suzuki. The model year is 2015, the engine is 376. It's the LTF400F KingQuad FSi model.
-                    * Is K&N parts better than Eaton?
+                    * Does the su-5002-replacement-air-filter work with Suzuki?
+                    * Are ABC filters street legal?
+                    * Is ABC parts better than XYZ?
                     """)
 
-    prompt = st.text_input("Enter your question about auto parts", "")
+
+
+    # Use the session state value in the text_input
+    user_input = st.text_input("Enter your question about auto parts", value=st.session_state["user_question"], key="user_question")
+
+
+    prompt = user_input
 
     if st.button("Submit"):
-        ### ADJUST YOUR SYSTEM PROMPT HERE - IF DESIRED ###
+        ### ADJUST YOUR SYSTEM PROMPT HERE AND UPDATE SESSION MANAGEMENT ###
         system_prompt = [{"text": f"You are a helpful auto part shopping assistant. You're provided with 2 tools: \
                           'query_database' which searches for auto parts for a given car model year, make, car model, and engine; and \
                           'search_knowledge_database' which enables you to find answers to frequently asked customer questions (FAQ). \
@@ -294,3 +310,4 @@ with tabs[0]:
 
     if st.button("Clear Chat History"):
         st.session_state.history = []
+        st.rerun()
